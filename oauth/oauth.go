@@ -16,6 +16,8 @@ const (
 	refreshAccessTokenURL = "https://api.weixin.qq.com/sns/oauth2/refresh_token?appid=%s&grant_type=refresh_token&refresh_token=%s"
 	userInfoURL           = "https://api.weixin.qq.com/sns/userinfo?access_token=%s&openid=%s&lang=zh_CN"
 	checkAccessTokenURL   = "https://api.weixin.qq.com/sns/auth?access_token=%s&openid=%s"
+
+	miniProgramSessionUrl = "https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code"
 )
 
 //Oauth 保存用户授权信息
@@ -56,6 +58,35 @@ type ResAccessToken struct {
 	RefreshToken string `json:"refresh_token"`
 	OpenID       string `json:"openid"`
 	Scope        string `json:"scope"`
+}
+
+type ResMiniProgramSession struct {
+	util.CommonError
+
+	OpenID     string `json:"openid`
+	SessionKey string `json:"session_key"`
+	UnionID    string `json:"unionid"`
+}
+
+func (oauth *Oauth) GetUserMiniProgramSession(code string) (result ResMiniProgramSession, err error) {
+	urlStr := fmt.Sprintf(miniProgramSessionUrl, oauth.AppID, oauth.AppSecret, code)
+	var response []byte
+	response, err = util.HTTPGet(urlStr)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(response, &result)
+	if err != nil {
+		return
+	}
+
+	if result.ErrCode != 0 {
+		err = fmt.Errorf("GetUserMiniProgramSession error : errcode=%v , errmsg=%v", result.ErrCode, result.ErrMsg)
+		return
+	}
+
+	return
 }
 
 // GetUserAccessToken 通过网页授权的code 换取access_token(区别于context中的access_token)
